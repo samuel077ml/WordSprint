@@ -39,7 +39,17 @@ function pickRound(index: number, words: Word[]): Round {
   return { index, mode, options, tokens };
 }
 
-export default function Challenge({ categoryName, words }: { categoryName: string; words: Word[] }) {
+export default function Challenge({
+  categoryName,
+  words,
+  englishOnly,
+  onCorrect,
+}: {
+  categoryName: string;
+  words: Word[];
+  englishOnly: boolean;
+  onCorrect: () => void;
+}) {
   const [round, setRound] = useState<Round>(() => pickRound(0, words));
   const [typedAnswer, setTypedAnswer] = useState('');
   const [selectedTokens, setSelectedTokens] = useState<string[]>([]);
@@ -53,6 +63,7 @@ export default function Challenge({ categoryName, words }: { categoryName: strin
   function answerCorrect() {
     setScore((s) => s + 1);
     setFeedback('correct');
+    onCorrect();
   }
   function answerWrong() {
     setFeedback('wrong');
@@ -107,9 +118,9 @@ export default function Challenge({ categoryName, words }: { categoryName: strin
       return <MatchingRound words={words} onComplete={() => setMatchingDone(true)} />;
     }
     return (
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-10 text-center">
-        <h2 className="mb-2 text-2xl font-bold text-[var(--ink)]">¡Sección completa!</h2>
-        <p className="text-[var(--ink-soft)]">
+      <div className='rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-10 text-center'>
+        <h2 className='mb-2 text-2xl font-bold text-[var(--ink)]'>¡Sección completa!</h2>
+        <p className='text-[var(--ink-soft)]'>
           Acertaste {score} de {words.length} en {categoryName}.
         </p>
       </div>
@@ -123,15 +134,22 @@ export default function Challenge({ categoryName, words }: { categoryName: strin
   });
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8">
-      <p className="mb-4 text-xs font-bold uppercase tracking-wide text-[var(--primary)]">
+    <div className='rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8'>
+      <p className='mb-4 text-xs font-bold uppercase tracking-wide text-[var(--primary)]'>
         {categoryName} · Palabra {round.index + 1} de {words.length}
       </p>
 
+      {current && (
+        <div className='mb-5 flex items-start gap-3 rounded-lg border border-dashed border-[var(--gold)] bg-[var(--surface-2)] px-4 py-3 text-sm'>
+          <span className='mt-0.5'>💡</span>
+          <span className='text-[var(--ink)]'>{englishOnly ? current.hint_en : current.hint_es}</span>
+        </div>
+      )}
+
       {round.mode === 'multiple' && current && (
         <>
-          <p className="mb-6 text-lg text-[var(--ink)]">{current.sentence.replace('___', `[ ${current.word} ]`)}</p>
-          <div className="grid gap-3">
+          <p className='mb-6 text-lg text-[var(--ink)]'>{current.sentence.replace('___', `[ ${current.word} ]`)}</p>
+          <div className='grid gap-3'>
             {round.options.map((opt) => (
               <button
                 key={opt}
@@ -151,17 +169,20 @@ export default function Challenge({ categoryName, words }: { categoryName: strin
 
       {round.mode === 'type' && current && (
         <>
-          <p className="mb-2 text-sm text-[var(--ink-soft)]">
-            Traducción: <strong className="text-[var(--ink)]">{current.translation}</strong>
+          <p className='mb-2 text-sm text-[var(--ink-soft)]'>
+            Traducción: <strong className='text-[var(--ink)]'>{current.translation}</strong>
           </p>
-          <p className="mb-6 text-lg text-[var(--ink)]">{current.sentence.replace('___', '_____')}</p>
+          <p className='mb-6 text-lg text-[var(--ink)]'>{current.sentence.replace('___', '_____')}</p>
           <input
             value={typedAnswer}
             onChange={(e) => setTypedAnswer(e.target.value)}
-            placeholder="Escribe la palabra en inglés"
-            className="mb-3 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-[var(--ink)]"
+            placeholder='Escribe la palabra en inglés'
+            className='mb-3 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-[var(--ink)]'
           />
-          <button onClick={checkTyped} className="rounded-lg bg-[var(--primary)] px-5 py-2 font-semibold text-[#0B0E1A]">
+          <button
+            onClick={checkTyped}
+            className='rounded-lg bg-[var(--primary)] px-5 py-2 font-semibold text-[#0B0E1A]'
+          >
             Comprobar
           </button>
         </>
@@ -169,10 +190,13 @@ export default function Challenge({ categoryName, words }: { categoryName: strin
 
       {round.mode === 'listen' && current && (
         <>
-          <button onClick={() => speak(current.word)} className="mb-6 rounded-full bg-[var(--surface-2)] px-6 py-4 text-2xl">
+          <button
+            onClick={() => speak(current.word)}
+            className='mb-6 rounded-full bg-[var(--surface-2)] px-6 py-4 text-2xl'
+          >
             🔊 Reproducir
           </button>
-          <div className="grid gap-3">
+          <div className='grid gap-3'>
             {round.options.map((opt) => (
               <button
                 key={opt}
@@ -192,24 +216,24 @@ export default function Challenge({ categoryName, words }: { categoryName: strin
 
       {round.mode === 'order' && current && (
         <>
-          <p className="mb-2 text-sm text-[var(--ink-soft)]">Ordena las palabras para formar la oración correcta:</p>
-          <div className="mb-4 flex min-h-[52px] flex-wrap gap-2 rounded-lg border border-dashed border-[var(--border)] p-3">
+          <p className='mb-2 text-sm text-[var(--ink-soft)]'>Ordena las palabras para formar la oración correcta:</p>
+          <div className='mb-4 flex min-h-[52px] flex-wrap gap-2 rounded-lg border border-dashed border-[var(--border)] p-3'>
             {selectedTokens.map((token, i) => (
               <button
                 key={i}
                 onClick={() => tapToken(token, false)}
-                className="rounded-md bg-[var(--primary)] px-3 py-1.5 text-sm font-semibold text-[#0B0E1A]"
+                className='rounded-md bg-[var(--primary)] px-3 py-1.5 text-sm font-semibold text-[#0B0E1A]'
               >
                 {token}
               </button>
             ))}
           </div>
-          <div className="mb-6 flex flex-wrap gap-2">
+          <div className='mb-6 flex flex-wrap gap-2'>
             {availableTokens.map((token, i) => (
               <button
                 key={i}
                 onClick={() => tapToken(token, true)}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--ink)]"
+                className='rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--ink)]'
               >
                 {token}
               </button>
@@ -218,7 +242,7 @@ export default function Challenge({ categoryName, words }: { categoryName: strin
           <button
             onClick={checkOrder}
             disabled={selectedTokens.length !== round.tokens.length}
-            className="rounded-lg bg-[var(--primary)] px-5 py-2 font-semibold text-[#0B0E1A] disabled:opacity-40"
+            className='rounded-lg bg-[var(--primary)] px-5 py-2 font-semibold text-[#0B0E1A] disabled:opacity-40'
           >
             Comprobar
           </button>
@@ -226,11 +250,11 @@ export default function Challenge({ categoryName, words }: { categoryName: strin
       )}
 
       {feedback && (
-        <div className="mt-6 flex items-center justify-between">
+        <div className='mt-6 flex items-center justify-between'>
           <span className={feedback === 'correct' ? 'text-emerald-400' : 'text-rose-400'}>
             {feedback === 'correct' ? '¡Correcto!' : `Era: ${current && cleanSentence(current.sentence, current.word)}`}
           </span>
-          <button onClick={next} className="rounded-lg bg-[var(--ink)] px-5 py-2 font-semibold text-[var(--bg)]">
+          <button onClick={next} className='rounded-lg bg-[var(--ink)] px-5 py-2 font-semibold text-[var(--bg)]'>
             Siguiente →
           </button>
         </div>
