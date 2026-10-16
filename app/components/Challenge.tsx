@@ -43,12 +43,12 @@ export default function Challenge({
   categoryName,
   words,
   englishOnly,
-  onCorrect,
+  onAnswer,
 }: {
   categoryName: string;
   words: Word[];
   englishOnly: boolean;
-  onCorrect: () => void;
+  onAnswer: (word: string, correct: boolean) => void;
 }) {
   const [round, setRound] = useState<Round>(() => pickRound(0, words));
   const [typedAnswer, setTypedAnswer] = useState('');
@@ -60,14 +60,17 @@ export default function Challenge({
   const done = round.index >= words.length;
   const current = !done ? words[round.index] : null;
 
-  function answerCorrect() {
-    setScore((s) => s + 1);
-    setFeedback('correct');
-    onCorrect();
-  }
-  function answerWrong() {
-    setFeedback('wrong');
-  }
+function answerCorrect() {
+  if (!current) return;
+  setScore((s) => s + 1);
+  setFeedback('correct');
+  onAnswer(current.word, true);
+}
+function answerWrong() {
+  if (!current) return;
+  setFeedback('wrong');
+  onAnswer(current.word, false);
+}
 
   function checkChoice(choice: string) {
     if (feedback || !current) return;
