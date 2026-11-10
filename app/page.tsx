@@ -38,7 +38,7 @@ export default function Home() {
   const visibleProgress: ProgressMap = userId ? progress : {};
 
   function handleAnswer(category: string, word: string, correct: boolean) {
-    if (correct) player.addXp(1);
+    player.registerAnswer(correct);
     if (!userId) return;
 
     const key = `${category}|${word}`;
@@ -77,10 +77,12 @@ export default function Home() {
           )}
         </div>
       </header>
-
       <div className='mb-10 flex items-center gap-3'>
         <span className='rounded-full bg-[var(--ink)] px-3 py-1 text-xs font-bold text-[var(--bg)]'>
           {player.level}
+        </span>
+        <span className='rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-xs font-bold text-orange-300'>
+          🔥 {player.streak}
         </span>
         <div className='h-3 flex-1 overflow-hidden rounded-full border border-[var(--border)] bg-[var(--surface-2)]'>
           <div
