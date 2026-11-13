@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { categories, type Word } from '@/app/lib/vocabData';
+import { scenarios } from '@/app/lib/scenarios';
 import Challenge from '@/app/components/Challenge';
+import Conversation from '@/app/components/Conversation';
 import DailyPanel from '@/app/components/DailyPanel';
 import Onboarding from '@/app/components/Onboarding';
 import AuthForm from '@/app/components/AuthForm';
@@ -30,12 +32,15 @@ const allWords: Word[] = categories.flatMap((c) => c.words);
 
 export default function Home() {
   const [selected, setSelected] = useState<string | null>(null);
+  const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [sessionWords, setSessionWords] = useState<Word[] | null>(null);
   const [progress, setProgress] = useState<ProgressMap>({});
   // Se calcula una sola vez al abrir la página; no se muestra hasta que cargue el usuario
   const [todayWord] = useState<Word>(() => wordOfTheDay(allWords, dateKey(new Date())));
   const player = usePlayerState();
   const userId = player.user?.id;
+  const activeScenario = scenarios.find((s) => s.id === scenarioId);
+  const inActivity = selected !== null || scenarioId !== null;
 
   // Cargar el progreso guardado cuando hay un usuario logueado
   useEffect(() => {
@@ -61,6 +66,7 @@ export default function Home() {
 
   function goBack() {
     setSelected(null);
+    setScenarioId(null);
     setSessionWords(null);
   }
 
@@ -92,9 +98,9 @@ export default function Home() {
       <header className='mb-6 flex items-center justify-between'>
         <h1 className='text-xl font-bold tracking-tight text-[var(--ink)]'>WordSprint</h1>
         <div className='flex items-center gap-4'>
-          {selected && (
+          {inActivity && (
             <button onClick={goBack} className='text-sm text-[var(--ink-soft)]'>
-              ← Volver a categorías
+              ← Volver al inicio
             </button>
           )}
           {player.user && (
@@ -120,39 +126,68 @@ export default function Home() {
         </div>
       </div>
 
-      {!selected && player.loaded && player.user && player.onboarded && (
+      {!inActivity && player.loaded && player.user && player.onboarded && (
         <DailyPanel answers={player.dailyAnswers} word={todayWord} englishOnly={player.englishOnly} />
       )}
 
-      {!selected && (
-        <section className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
-          {categories.map((cat) => {
-            const style = styles[cat.name];
-            const mastered = cat.words.filter((w) => isMastered(visibleProgress[`${cat.name}|${w.word}`])).length;
-            const toReview = cat.words.filter((w) => needsReview(visibleProgress[`${cat.name}|${w.word}`])).length;
-            return (
+      {!inActivity && (
+        <>
+          <h2 className='mb-4 text-xl font-bold text-[var(--ink)]'>Vocabulario por temas</h2>
+          <section className='mb-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
+            {categories.map((cat) => {
+              const style = styles[cat.name];
+              const mastered = cat.words.filter((w) => isMastered(visibleProgress[`${cat.name}|${w.word}`])).length;
+              const toReview = cat.words.filter((w) => needsReview(visibleProgress[`${cat.name}|${w.word}`])).length;
+              return (
+                <button
+                  key={cat.name}
+                  onClick={() => openCategory(cat.name)}
+                  className={`rounded-2xl border border-[var(--border)] bg-gradient-to-br ${style.gradient} bg-[var(--surface)] p-6 text-left transition hover:-translate-y-1 hover:border-[var(--primary)]`}
+                >
+                  <p className='mb-3 text-xs font-semibold tracking-wide text-[var(--ink-soft)]'>
+                    {mastered}/{cat.words.length} DOMINADAS
+                  </p>
+                  <h3 className='mb-2 text-2xl font-bold text-[var(--ink)]'>{cat.name}</h3>
+                  <p className='mb-4 text-sm text-[var(--ink-soft)]'>
+                    Practica el vocabulario esencial para desenvolverte en este tema.
+                  </p>
+                  {toReview > 0 && <p className='mb-3 text-xs font-bold text-amber-300'>🔁 {toReview} por repasar</p>}
+                  <span
+                    className={`inline-block rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-bold ${style.accent}`}
+                  >
+                    {style.level}
+                  </span>
+                </button>
+              );
+            })}
+          </section>
+
+          <h2 className='mb-1 text-xl font-bold text-[var(--ink)]'>Situaciones reales</h2>
+          <p className='mb-4 text-sm text-[var(--ink-soft)]'>
+            Practica conversaciones completas eligiendo la respuesta más natural.
+          </p>
+          <section className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
+            {scenarios.map((sc) => (
               <button
-                key={cat.name}
-                onClick={() => openCategory(cat.name)}
-                className={`rounded-2xl border border-[var(--border)] bg-gradient-to-br ${style.gradient} bg-[var(--surface)] p-6 text-left transition hover:-translate-y-1 hover:border-[var(--primary)]`}
+                key={sc.id}
+                onClick={() => setScenarioId(sc.id)}
+                className={`rounded-2xl border border-[var(--border)] bg-gradient-to-br ${sc.gradient} bg-[var(--surface)] p-6 text-left transition hover:-translate-y-1 hover:border-[var(--primary)]`}
               >
                 <p className='mb-3 text-xs font-semibold tracking-wide text-[var(--ink-soft)]'>
-                  {mastered}/{cat.words.length} DOMINADAS
+                  CONVERSACIÓN · {sc.turns.length} TURNOS
                 </p>
-                <h3 className='mb-2 text-2xl font-bold text-[var(--ink)]'>{cat.name}</h3>
-                <p className='mb-4 text-sm text-[var(--ink-soft)]'>
-                  Practica el vocabulario esencial para desenvolverte en este tema.
-                </p>
-                {toReview > 0 && <p className='mb-3 text-xs font-bold text-amber-300'>🔁 {toReview} por repasar</p>}
+                <h3 className='mb-4 text-2xl font-bold text-[var(--ink)]'>
+                  {sc.emoji} {sc.name}
+                </h3>
                 <span
-                  className={`inline-block rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-bold ${style.accent}`}
+                  className={`inline-block rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-bold ${sc.accent}`}
                 >
-                  {style.level}
+                  {sc.level}
                 </span>
               </button>
-            );
-          })}
-        </section>
+            ))}
+          </section>
+        </>
       )}
 
       {selected && sessionWords && (
@@ -162,6 +197,15 @@ export default function Home() {
           words={sessionWords}
           englishOnly={player.englishOnly}
           onAnswer={(word, correct) => handleAnswer(selected, word, correct)}
+        />
+      )}
+
+      {activeScenario && (
+        <Conversation
+          key={activeScenario.id}
+          scenario={activeScenario}
+          englishOnly={player.englishOnly}
+          onAnswer={(correct) => player.registerAnswer(correct)}
         />
       )}
     </main>
