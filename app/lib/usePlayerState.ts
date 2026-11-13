@@ -20,6 +20,7 @@ type Profile = {
   last_active_date: string | null;
   daily_answers: number;
   daily_date: string | null;
+  is_premium: boolean;
 };
 
 export function usePlayerState() {
@@ -66,9 +67,10 @@ export function usePlayerState() {
           daily_answers: sameDay ? row.daily_answers : 0,
         });
       } else {
-        const defaultProfile: Profile = {
+        // Importante: is_premium NO se envía al crear el perfil. Solo se puede cambiar desde Supabase o el servidor.
+        const newProfile = {
           id: userId,
-          native_lang: 'es',
+          native_lang: 'es' as NativeLang,
           xp: 0,
           onboarded: false,
           streak_count: 0,
@@ -76,8 +78,8 @@ export function usePlayerState() {
           daily_answers: 0,
           daily_date: null,
         };
-        await supabase.from('profiles').insert(defaultProfile);
-        if (!cancelled) setStoredProfile(defaultProfile);
+        await supabase.from('profiles').insert(newProfile);
+        if (!cancelled) setStoredProfile({ ...newProfile, is_premium: false });
       }
     }
 
@@ -107,6 +109,7 @@ export function usePlayerState() {
       last_active_date: null,
       daily_answers: 0,
       daily_date: null,
+      is_premium: profile?.is_premium ?? false,
     });
     await supabase.from('profiles').update({ native_lang: nativeLang, xp, onboarded: true }).eq('id', user.id);
   }
@@ -168,6 +171,7 @@ export function usePlayerState() {
     xp,
     streak: profile?.streak_count ?? 0,
     dailyAnswers: profile?.daily_answers ?? 0,
+    isPremium: profile?.is_premium ?? false,
     level,
     levelIndex,
     englishOnly,

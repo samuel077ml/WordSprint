@@ -6,10 +6,12 @@ import { scenarios } from '@/app/lib/scenarios';
 import Challenge from '@/app/components/Challenge';
 import Conversation from '@/app/components/Conversation';
 import DailyPanel from '@/app/components/DailyPanel';
+import UpgradeModal from '@/app/components/UpgradeModal';
 import Onboarding from '@/app/components/Onboarding';
 import AuthForm from '@/app/components/AuthForm';
 import { usePlayerState } from '@/app/lib/usePlayerState';
 import { dateKey, wordOfTheDay } from '@/app/lib/daily';
+import { canOpenCategory, canOpenScenario } from '@/app/lib/access';
 import {
   loadAllProgress,
   recordAnswer,
@@ -33,6 +35,7 @@ const allWords: Word[] = categories.flatMap((c) => c.words);
 export default function Home() {
   const [selected, setSelected] = useState<string | null>(null);
   const [scenarioId, setScenarioId] = useState<string | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [sessionWords, setSessionWords] = useState<Word[] | null>(null);
   const [progress, setProgress] = useState<ProgressMap>({});
   // Se calcula una sola vez al abrir la página; no se muestra hasta que cargue el usuario
@@ -62,6 +65,25 @@ export default function Home() {
     if (!cat) return;
     setSessionWords(orderForReview(name, cat.words, visibleProgress).slice(0, 10));
     setSelected(name);
+  }
+
+  // Si el contenido es Premium y el usuario no lo tiene, se muestra la invitación en vez de abrirlo
+  function tryOpenCategory(name: string) {
+    if (!player.loaded) return;
+    if (!canOpenCategory(name, player.isPremium)) {
+      setShowUpgrade(true);
+      return;
+    }
+    openCategory(name);
+  }
+
+  function tryOpenScenario(id: string) {
+    if (!player.loaded) return;
+    if (!canOpenScenario(id, player.isPremium)) {
+      setShowUpgrade(true);
+      return;
+    }
+    setScenarioId(id);
   }
 
   function goBack() {
@@ -94,6 +116,7 @@ export default function Home() {
       {player.loaded && player.user && !player.onboarded && (
         <Onboarding onComplete={(lang, level) => player.completeOnboarding(lang, level)} />
       )}
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
       <header className='mb-6 flex items-center justify-between'>
         <h1 className='text-xl font-bold tracking-tight text-[var(--ink)]'>WordSprint</h1>
@@ -138,20 +161,23 @@ export default function Home() {
               const style = styles[cat.name];
               const mastered = cat.words.filter((w) => isMastered(visibleProgress[`${cat.name}|${w.word}`])).length;
               const toReview = cat.words.filter((w) => needsReview(visibleProgress[`${cat.name}|${w.word}`])).length;
+              const locked = player.loaded && !canOpenCategory(cat.name, player.isPremium);
               return (
                 <button
                   key={cat.name}
-                  onClick={() => openCategory(cat.name)}
+                  onClick={() => tryOpenCategory(cat.name)}
                   className={`rounded-2xl border border-[var(--border)] bg-gradient-to-br ${style.gradient} bg-[var(--surface)] p-6 text-left transition hover:-translate-y-1 hover:border-[var(--primary)]`}
                 >
                   <p className='mb-3 text-xs font-semibold tracking-wide text-[var(--ink-soft)]'>
-                    {mastered}/{cat.words.length} DOMINADAS
+                    {locked ? '🔒 PREMIUM' : `${mastered}/${cat.words.length} DOMINADAS`}
                   </p>
                   <h3 className='mb-2 text-2xl font-bold text-[var(--ink)]'>{cat.name}</h3>
                   <p className='mb-4 text-sm text-[var(--ink-soft)]'>
                     Practica el vocabulario esencial para desenvolverte en este tema.
                   </p>
-                  {toReview > 0 && <p className='mb-3 text-xs font-bold text-amber-300'>🔁 {toReview} por repasar</p>}
+                  {!locked && toReview > 0 && (
+                    <p className='mb-3 text-xs font-bold text-amber-300'>🔁 {toReview} por repasar</p>
+                  )}
                   <span
                     className={`inline-block rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-bold ${style.accent}`}
                   >
@@ -167,25 +193,28 @@ export default function Home() {
             Practica conversaciones completas eligiendo la respuesta más natural.
           </p>
           <section className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
-            {scenarios.map((sc) => (
-              <button
-                key={sc.id}
-                onClick={() => setScenarioId(sc.id)}
-                className={`rounded-2xl border border-[var(--border)] bg-gradient-to-br ${sc.gradient} bg-[var(--surface)] p-6 text-left transition hover:-translate-y-1 hover:border-[var(--primary)]`}
-              >
-                <p className='mb-3 text-xs font-semibold tracking-wide text-[var(--ink-soft)]'>
-                  CONVERSACIÓN · {sc.turns.length} TURNOS
-                </p>
-                <h3 className='mb-4 text-2xl font-bold text-[var(--ink)]'>
-                  {sc.emoji} {sc.name}
-                </h3>
-                <span
-                  className={`inline-block rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-bold ${sc.accent}`}
+            {scenarios.map((sc) => {
+              const locked = player.loaded && !canOpenScenario(sc.id, player.isPremium);
+              return (
+                <button
+                  key={sc.id}
+                  onClick={() => tryOpenScenario(sc.id)}
+                  className={`rounded-2xl border border-[var(--border)] bg-gradient-to-br ${sc.gradient} bg-[var(--surface)] p-6 text-left transition hover:-translate-y-1 hover:border-[var(--primary)]`}
                 >
-                  {sc.level}
-                </span>
-              </button>
-            ))}
+                  <p className='mb-3 text-xs font-semibold tracking-wide text-[var(--ink-soft)]'>
+                    {locked ? '🔒 PREMIUM' : `CONVERSACIÓN · ${sc.turns.length} TURNOS`}
+                  </p>
+                  <h3 className='mb-4 text-2xl font-bold text-[var(--ink)]'>
+                    {sc.emoji} {sc.name}
+                  </h3>
+                  <span
+                    className={`inline-block rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-bold ${sc.accent}`}
+                  >
+                    {sc.level}
+                  </span>
+                </button>
+              );
+            })}
           </section>
         </>
       )}
