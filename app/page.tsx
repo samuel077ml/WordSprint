@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { categories, type Word } from '@/app/lib/vocabData';
 import Challenge from '@/app/components/Challenge';
+import DailyPanel from '@/app/components/DailyPanel';
 import Onboarding from '@/app/components/Onboarding';
 import AuthForm from '@/app/components/AuthForm';
 import { usePlayerState } from '@/app/lib/usePlayerState';
+import { dateKey, wordOfTheDay } from '@/app/lib/daily';
 import {
   loadAllProgress,
   recordAnswer,
@@ -23,10 +25,15 @@ const styles: Record<string, { gradient: string; accent: string; level: string }
   Estudios: { gradient: 'from-rose-500/20 to-pink-900/40', accent: 'text-rose-300', level: 'PRINCIPIANTE' },
 };
 
+// Todas las palabras juntas, para elegir la palabra del día
+const allWords: Word[] = categories.flatMap((c) => c.words);
+
 export default function Home() {
   const [selected, setSelected] = useState<string | null>(null);
   const [sessionWords, setSessionWords] = useState<Word[] | null>(null);
   const [progress, setProgress] = useState<ProgressMap>({});
+  // Se calcula una sola vez al abrir la página; no se muestra hasta que cargue el usuario
+  const [todayWord] = useState<Word>(() => wordOfTheDay(allWords, dateKey(new Date())));
   const player = usePlayerState();
   const userId = player.user?.id;
 
@@ -112,6 +119,10 @@ export default function Home() {
           />
         </div>
       </div>
+
+      {!selected && player.loaded && player.user && player.onboarded && (
+        <DailyPanel answers={player.dailyAnswers} word={todayWord} englishOnly={player.englishOnly} />
+      )}
 
       {!selected && (
         <section className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
