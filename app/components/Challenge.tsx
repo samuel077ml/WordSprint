@@ -1,8 +1,8 @@
 'use client';
 
+import MatchingRound from '@/app/components/MatchingRound';
 import { Word } from '@/app/lib/vocabData';
 import { useState } from 'react';
-import MatchingRound from '@/app/components/MatchingRound';
 
 type Mode = 'multiple' | 'type' | 'listen' | 'order';
 
@@ -60,17 +60,17 @@ export default function Challenge({
   const done = round.index >= words.length;
   const current = !done ? words[round.index] : null;
 
-function answerCorrect() {
-  if (!current) return;
-  setScore((s) => s + 1);
-  setFeedback('correct');
-  onAnswer(current.word, true);
-}
-function answerWrong() {
-  if (!current) return;
-  setFeedback('wrong');
-  onAnswer(current.word, false);
-}
+  function answerCorrect() {
+    if (!current) return;
+    setScore((s) => s + 1);
+    setFeedback('correct');
+    onAnswer(current.word, true);
+  }
+  function answerWrong() {
+    if (!current) return;
+    setFeedback('wrong');
+    onAnswer(current.word, false);
+  }
 
   function checkChoice(choice: string) {
     if (feedback || !current) return;
@@ -118,7 +118,7 @@ function answerWrong() {
 
   if (done) {
     if (!matchingDone) {
-      return <MatchingRound words={words} onComplete={() => setMatchingDone(true)} />;
+      return <MatchingRound words={words.slice(0, 6)} onComplete={() => setMatchingDone(true)} />;
     }
     return (
       <div className='rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-10 text-center'>
