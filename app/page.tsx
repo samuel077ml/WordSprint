@@ -1,25 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { categories, type Word } from '@/app/lib/vocabData';
-import { scenarios } from '@/app/lib/scenarios';
+import AuthForm from '@/app/components/AuthForm';
 import Challenge from '@/app/components/Challenge';
 import Conversation from '@/app/components/Conversation';
 import DailyPanel from '@/app/components/DailyPanel';
-import UpgradeModal from '@/app/components/UpgradeModal';
 import Onboarding from '@/app/components/Onboarding';
-import AuthForm from '@/app/components/AuthForm';
-import { usePlayerState } from '@/app/lib/usePlayerState';
-import { dateKey, wordOfTheDay } from '@/app/lib/daily';
+import UpgradeModal from '@/app/components/UpgradeModal';
 import { canOpenCategory, canOpenScenario } from '@/app/lib/access';
+import { dateKey, wordOfTheDay } from '@/app/lib/daily';
+import { scenarios } from '@/app/lib/scenarios';
+import { usePlayerState } from '@/app/lib/usePlayerState';
+import { categories, type Word } from '@/app/lib/vocabData';
 import {
-  loadAllProgress,
-  recordAnswer,
   isMastered,
+  loadAllProgress,
   needsReview,
   orderForReview,
+  recordAnswer,
   type ProgressMap,
 } from '@/app/lib/wordProgress';
+import { useEffect, useState } from 'react';
 
 const styles: Record<string, { gradient: string; accent: string; level: string }> = {
   Deportes: { gradient: 'from-cyan-500/20 to-blue-900/40', accent: 'text-cyan-300', level: 'PRINCIPIANTE' },
