@@ -1,8 +1,24 @@
 'use client';
 
+import { useState } from 'react';
 import { PRICE_LABEL } from '@/app/lib/access';
+import { startCheckout } from '@/app/lib/checkout';
 
 export default function UpgradeModal({ onClose }: { onClose: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleUpgrade() {
+    setLoading(true);
+    setError(null);
+    const message = await startCheckout();
+    // Si no hubo error, el navegador ya se está yendo a Stripe
+    if (message) {
+      setError(message);
+      setLoading(false);
+    }
+  }
+
   return (
     <div
       className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-5'
@@ -22,12 +38,21 @@ export default function UpgradeModal({ onClose }: { onClose: () => void }) {
           <li>✅ Todo lo que se agregue después</li>
         </ul>
 
-        <p className='mb-5 rounded-lg border border-dashed border-[var(--gold)] bg-[var(--surface-2)] px-4 py-3 text-xs text-[var(--ink-soft)]'>
-          El pago todavía no está disponible: lo estamos terminando.
-        </p>
+        {error && (
+          <p className='mb-4 rounded-lg border border-rose-400 bg-rose-500/10 px-4 py-3 text-sm text-rose-300'>
+            {error}
+          </p>
+        )}
 
-        <button onClick={onClose} className='w-full rounded-lg bg-[var(--gold)] px-5 py-3 font-bold text-[#0B0E1A]'>
-          Entendido
+        <button
+          onClick={handleUpgrade}
+          disabled={loading}
+          className='mb-3 w-full rounded-lg bg-[var(--gold)] px-5 py-3 font-bold text-[#0B0E1A] disabled:opacity-60'
+        >
+          {loading ? 'Abriendo el pago…' : `Hazte Premium · ${PRICE_LABEL}`}
+        </button>
+        <button onClick={onClose} className='w-full px-5 py-2 text-sm text-[var(--ink-soft)]'>
+          Ahora no
         </button>
       </div>
     </div>
